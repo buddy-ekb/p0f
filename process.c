@@ -1379,7 +1379,7 @@ static void flow_dispatch(struct packet_data* pk) {
 
       if (!pk->pay_len) return;
 
-      need_more |= process_http(to_srv, f);
+      need_more |= (!process_tcp_only && process_http(to_srv, f));
 
       if (!need_more) {
 

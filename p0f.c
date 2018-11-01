@@ -93,6 +93,8 @@ static u8 stop_soon;                    /* Ctrl-C or so pressed?              */
 
 u8 daemon_mode;                         /* Running in daemon mode?            */
 
+u8 process_tcp_only;                    /* parse TCP packets only?            */
+
 static u8 set_promisc;                  /* Use promiscuous mode?              */
          
 static pcap_t *pt;                      /* PCAP capture thingy                */
@@ -144,6 +146,7 @@ static void usage(void) {
 #endif /* !__CYGWIN__ */
 "  -t c,h    - set connection / host cache age limits (%us,%um)\n"
 "  -m c,h    - cap the number of active connections / hosts (%u,%u)\n"
+"  -T        - parse TCP packets only (skip HTTP or whatever)\n"
 "\n"
 "Optional filter expressions (man tcpdump) can be specified in the command\n"
 "line to prevent p0f from looking at incidental network traffic.\n"
@@ -1027,7 +1030,7 @@ int main(int argc, char** argv) {
   if (getuid() != geteuid())
     FATAL("Please don't make me setuid. See README for more.\n");
 
-  while ((r = getopt(argc, argv, "+LS:df:i:m:o:pr:s:t:u:")) != -1) switch (r) {
+  while ((r = getopt(argc, argv, "+LS:Tdf:i:m:o:pr:s:t:u:")) != -1) switch (r) {
 
     case 'L':
 
@@ -1154,6 +1157,13 @@ int main(int argc, char** argv) {
 
       switch_user = (u8*)optarg;
 
+      break;
+
+    case 'T':
+      if (process_tcp_only)
+        FATAL("Can't disable HTTP processing twice.");
+
+      process_tcp_only = 1;
       break;
 
     default: usage();
