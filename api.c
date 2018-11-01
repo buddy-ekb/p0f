@@ -22,6 +22,7 @@
 #include "api.h"
 #include "process.h"
 #include "readfp.h"
+#include "tcp.h"
 
 /* Process API queries. */
 
@@ -33,7 +34,7 @@ void handle_query(struct p0f_api_query* q, struct p0f_api_response* r) {
 
   r->magic = P0F_RESP_MAGIC;
 
-  if (q->magic != P0F_QUERY_MAGIC) {
+  if (q->magic != P0F_QUERY_MAGIC4 && q->magic != P0F_QUERY_MAGIC6) {
 
     WARN("Query with bad magic (0x%x).", q->magic);
 
@@ -43,64 +44,24 @@ void handle_query(struct p0f_api_query* q, struct p0f_api_response* r) {
 
   }
 
-  switch (q->addr_type) {
+  h = lookup_host(q->addr, q->magic == P0F_QUERY_MAGIC4 ? IP_VER4 : IP_VER6);
 
-    case P0F_ADDR_IPV4:
-    case P0F_ADDR_IPV6:
-      h = lookup_host(q->addr, q->addr_type);
-      break;
-
-    default:
-
-      WARN("Query with unknown address type %u.\n", q->addr_type);
-      r->status = P0F_STATUS_BADQUERY;
-      return;
-
-  }
-
-  if (!h) {
+  if (!h || h->last_port != q->port || !h->last_syn) {
     r->status = P0F_STATUS_NOMATCH;
     return;
   }
 
   r->status     = P0F_STATUS_OK;
-  r->first_seen = h->first_seen;
-  r->last_seen  = h->last_seen;
-  r->total_conn = h->total_conn;
 
-  if (h->last_name_id != -1) {
+  memcpy(r->raw_syn_sig, h->last_syn, sizeof r->raw_syn_sig);
 
-    strncpy((char*)r->os_name, (char*)fp_os_names[h->last_name_id],
-            P0F_STR_MAX + 1);
-
-    if (h->last_flavor)
-       strncpy((char*)r->os_flavor, (char*)h->last_flavor, P0F_STR_MAX + 1);
-
-  }
-
-  if (h->http_name_id != -1) {
-
-    strncpy((char*)r->http_name, (char*)fp_os_names[h->http_name_id],
-            P0F_STR_MAX + 1);
-
-    if (h->http_flavor)
-      strncpy((char*)r->http_flavor, (char*)h->http_flavor, P0F_STR_MAX + 1);
-
-  }
-
-  if (h->link_type)
-    strncpy((char*)r->link_type, (char*)h->link_type, P0F_STR_MAX + 1);
-
-  if (h->language)
-    strncpy((char*)r->language, (char*)h->language, P0F_STR_MAX + 1);
-
-  r->bad_sw      = h->bad_sw;
+/*  r->bad_sw      = h->bad_sw;
   r->last_nat    = h->last_nat;
   r->last_chg    = h->last_chg;
   r->up_mod_days = h->up_mod_days;
   r->distance    = h->distance;
   r->os_match_q  = h->last_quality;
 
-  if (h->last_up_min != -1) r->uptime_min = h->last_up_min;
+  if (h->last_up_min != -1) r->uptime_min = h->last_up_min;*/
 
 }
