@@ -95,6 +95,8 @@ u8 daemon_mode;                         /* Running in daemon mode?            */
 
 u8 process_tcp_only;                    /* parse TCP packets only?            */
 
+u8 suppress_too_many_warnings;          /* suppress 'too many ...' warnings   */
+
 static u8 set_promisc;                  /* Use promiscuous mode?              */
          
 static pcap_t *pt;                      /* PCAP capture thingy                */
@@ -147,6 +149,7 @@ static void usage(void) {
 "  -t c,h    - set connection / host cache age limits (%us,%um)\n"
 "  -m c,h    - cap the number of active connections / hosts (%u,%u)\n"
 "  -T        - parse TCP packets only (skip HTTP or whatever)\n"
+"  -W        - suppress 'too many tracked connections/host entries' warnings\n"
 "\n"
 "Optional filter expressions (man tcpdump) can be specified in the command\n"
 "line to prevent p0f from looking at incidental network traffic.\n"
@@ -1030,7 +1033,7 @@ int main(int argc, char** argv) {
   if (getuid() != geteuid())
     FATAL("Please don't make me setuid. See README for more.\n");
 
-  while ((r = getopt(argc, argv, "+LS:Tdf:i:m:o:pr:s:t:u:")) != -1) switch (r) {
+  while ((r = getopt(argc, argv, "+LS:TWdf:i:m:o:pr:s:t:u:")) != -1) switch (r) {
 
     case 'L':
 
@@ -1164,6 +1167,13 @@ int main(int argc, char** argv) {
         FATAL("Can't disable HTTP processing twice.");
 
       process_tcp_only = 1;
+      break;
+
+    case 'W':
+      if (suppress_too_many_warnings)
+        FATAL("It's too quiet already here.");
+
+      suppress_too_many_warnings = 1;
       break;
 
     default: usage();

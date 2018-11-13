@@ -16,6 +16,7 @@
 
 extern u8  daemon_mode;
 extern u8  process_tcp_only;
+extern u8  suppress_too_many_warnings;
 extern s32 link_type;
 extern u32 max_conn, max_hosts, conn_max_age, host_idle_limit, hash_seed;
 extern u8* read_file;

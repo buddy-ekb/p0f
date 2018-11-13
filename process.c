@@ -851,7 +851,7 @@ static void nuke_hosts(void) {
   u32 kcnt = 1 + (host_cnt * KILL_PERCENT / 100);
   struct host_data* target = host_by_age;
 
-  if (!read_file)
+  if (!read_file && !suppress_too_many_warnings)
     WARN("Too many host entries, deleting %u. Use -m to adjust.", kcnt);
 
   nuke_flows(1);
@@ -1013,7 +1013,7 @@ static void nuke_flows(u8 silent) {
 
   if (silent)
     DEBUG("[#] Pruning connections - trying to delete %u...\n",kcnt);
-  else if (!read_file)
+  else if (!read_file && !suppress_too_many_warnings)
     WARN("Too many tracked connections, deleting %u. "
          "Use -m to adjust.", kcnt);
 
