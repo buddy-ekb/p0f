@@ -44,9 +44,9 @@ void handle_query(struct p0f_api_query* q, struct p0f_api_response* r) {
 
   }
 
-  h = lookup_host(q->addr, q->magic == P0F_QUERY_MAGIC4 ? IP_VER4 : IP_VER6);
+  h = lookup_host(q->addr, q->port, q->magic == P0F_QUERY_MAGIC4 ? IP_VER4 : IP_VER6);
 
-  if (!h || h->last_port != q->port || !h->last_syn) {
+  if (!h || !h->last_syn) {
     r->status = P0F_STATUS_NOMATCH;
     return;
   }

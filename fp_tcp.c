@@ -1074,7 +1074,7 @@ static void score_nat(u8 to_srv, struct tcp_sig* sig, struct packet_flow* f) {
      spontaneously every now and then. Require the drop to be by at least
      few dozen, to account for simple case of several simultaneously opened
      connections arriving in odd order. */
-
+  /*
   if (to_srv && hd->last_port && f->cli_port < hd->last_port &&
       hd->last_port - f->cli_port >= MIN_PORT_DROP) {
 
@@ -1084,7 +1084,7 @@ static void score_nat(u8 to_srv, struct tcp_sig* sig, struct packet_flow* f) {
     reason |= NAT_PORT;
 
   }
-
+  */
   /* Change of MTU is always sketchy. */
 
   if (sig->mss != ref->mss) {
@@ -1150,7 +1150,7 @@ log_and_update:
 
   }
 
-  hd->last_port = f->cli_port;
+  hd->port = f->cli_port;
 
 }
 

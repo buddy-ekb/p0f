@@ -769,11 +769,12 @@ static u32 get_flow_bucket(struct packet_data* pk) {
 
 /* Calculate hash bucket for host_data. */
 
-static u32 get_host_bucket(u8* addr, u8 ip_ver) {
+static u32 get_host_bucket(u8* addr, u16 port, u8 ip_ver) {
 
   u32 bucket;
 
   bucket = hash32(addr, (ip_ver == IP_VER4) ? 4 : 16, hash_seed);
+  bucket ^= hash32(&port, 2, hash_seed);
 
   return bucket % HOST_BUCKETS;
 
@@ -782,15 +783,16 @@ static u32 get_host_bucket(u8* addr, u8 ip_ver) {
 
 /* Look up host data. */
 
-struct host_data* lookup_host(u8* addr, u8 ip_ver) {
+struct host_data* lookup_host(u8* addr, u16 port, u8 ip_ver) {
 
-  u32 bucket = get_host_bucket(addr, ip_ver);
+  u32 bucket = get_host_bucket(addr, port, ip_ver);
   struct host_data* h = host_b[bucket];
 
   while (CP(h)) {
 
     if (ip_ver == h->ip_ver &&
-        !memcmp(addr, h->addr, (h->ip_ver == IP_VER4) ? 4 : 16))
+        !memcmp(addr, h->addr, (h->ip_ver == IP_VER4) ? 4 : 16) &&
+        h->port == port)
       return h;
 
     h = h->next;
@@ -808,7 +810,7 @@ static void destroy_host(struct host_data* h) {
 
   u32 bucket; 
 
-  bucket = get_host_bucket(CP(h)->addr, h->ip_ver);
+  bucket = get_host_bucket(CP(h)->addr, h->port, h->ip_ver);
 
   if (h->use_cnt) FATAL("Attempt to destroy used host data.");
 
@@ -869,9 +871,9 @@ static void nuke_hosts(void) {
 
 /* Create a minimal host data. */
 
-static struct host_data* create_host(u8* addr, u8 ip_ver) {
+static struct host_data* create_host(u8* addr, u16 port, u8 ip_ver) {
 
-  u32 bucket = get_host_bucket(addr, ip_ver);
+  u32 bucket = get_host_bucket(addr, port, ip_ver);
   struct host_data* nh;
 
   if (host_cnt > max_hosts) nuke_hosts();
@@ -1041,15 +1043,15 @@ static struct packet_flow* create_flow_from_syn(struct packet_data* pk) {
 
   nf = ck_alloc(sizeof(struct packet_flow));
 
-  nf->client = lookup_host(pk->src, pk->ip_ver);
+  nf->client = lookup_host(pk->src, pk->sport, pk->ip_ver);
 
   if (nf->client) touch_host(nf->client);
-  else nf->client = create_host(pk->src, pk->ip_ver);
+  else nf->client = create_host(pk->src, pk->sport, pk->ip_ver);
 
-  nf->server = lookup_host(pk->dst, pk->ip_ver);
+  nf->server = lookup_host(pk->dst, pk->dport, pk->ip_ver);
 
   if (nf->server) touch_host(nf->server);
-  else nf->server = create_host(pk->dst, pk->ip_ver);
+  else nf->server = create_host(pk->dst, pk->dport, pk->ip_ver);
 
   nf->client->use_cnt++;
   nf->server->use_cnt++;
