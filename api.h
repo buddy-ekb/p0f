@@ -41,13 +41,16 @@ struct p0f_api_response {
   u32 magic;                            /* Must be P0F_RESP_MAGIC             */
   u32 status;                           /* P0F_STATUS_*                       */
 
-  u8 raw_syn_sig[24];                   /* First 24 bytes of *host_data.last_syn */
+  u16 raw_tcp_sig_len;                  /* Text length of raw TCP signature   */
+  u16 raw_ssl_sig_len;                  /* Text length of raw SSL signature   */
+
+  u8  sig_buffer[1024];                 /* Buffer for text of signatures      */
 
 } __attribute__((packed));
 
 #ifdef _FROM_P0F
 
-void handle_query(struct p0f_api_query* q, struct p0f_api_response* r);
+void handle_query(struct p0f_api_query* q, struct p0f_api_response* r, u32* response_len);
 
 #endif /* _FROM_API */
 

@@ -812,7 +812,12 @@ static void fingerprint_ssl(u8 to_srv, struct packet_flow* f,
 
   OBSERVF("remote_time", "%u", sig->remote_time);
 
-  add_observation_field("raw_sig", dump_sig(sig, 1));
+  u8* raw_sig = dump_sig(sig, 1);
+  if(!f->client->raw_ssl_sig) {
+    f->client->raw_ssl_sig_len = strlen((char*)raw_sig);
+    f->client->raw_ssl_sig = ck_memdup_str(raw_sig, f->client->raw_ssl_sig_len);
+  }
+  add_observation_field("raw_sig", raw_sig);
 
   score_nat(to_srv, f, sig);
 

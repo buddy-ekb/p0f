@@ -840,6 +840,9 @@ static void destroy_host(struct host_data* h) {
   ck_free(h->http_resp);
   ck_free(h->http_req_os);
 
+  ck_free(h->raw_tcp_sig);
+  ck_free(h->raw_ssl_sig);
+
   ck_free(h);
 
   host_cnt--;

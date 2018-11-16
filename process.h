@@ -135,8 +135,17 @@ struct host_data {
 
   u16 http_resp_port;                   /* Port on which response seen        */
 
+  /* SSL business: */
+
   u32 ssl_remote_time;                  /* Last client timestamp from SSL     */
   u32 ssl_recv_time;                    /* Time drift derived from SSL        */
+
+  /* Raw signatures */
+
+  u32 raw_tcp_sig_len;                  /* Text length of raw TCP signature   */
+  u8* raw_tcp_sig;                      /* Text of raw TCP signature          */
+  u32 raw_ssl_sig_len;                  /* Text length of raw SSL signature   */
+  u8* raw_ssl_sig;                      /* Text of raw SSL signature          */
 
 };
 
