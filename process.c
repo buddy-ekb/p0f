@@ -9,7 +9,6 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <pcap.h>
 #include <time.h>
@@ -77,6 +76,18 @@ u32 get_unix_time(void) {
   return cur_time->tv_sec;
 }
 
+/* Update current timestamp in text */
+
+char* get_current_timestamp(void) {
+    static char tmp[64];
+
+    time_t ut = get_unix_time();
+    struct tm* lt = localtime(&ut);
+
+    strftime(tmp, sizeof tmp, "%Y/%m/%d %H:%M:%S", lt);
+
+    return tmp;
+}
 
 /* Find link-specific offset (pcap knows, but won't tell). */
 
@@ -817,6 +828,9 @@ static void destroy_host(struct host_data* h) {
   DEBUG("[#] Destroying host data: %s (bucket %d)\n",
         addr_to_str(h->addr, h->ip_ver), bucket);
 
+  if (debug_file)
+    DEBUGF("%s d %s/%d %d\n", get_current_timestamp(), addr_to_str(h->addr, h->ip_ver), h->port, bucket);
+
   /* Remove it from the bucketed linked list. */
 
   if (CP(h->next)) h->next->prev = h->prev;
@@ -883,6 +897,9 @@ static struct host_data* create_host(u8* addr, u16 port, u8 ip_ver) {
 
   DEBUG("[#] Creating host data: %s (bucket %u)\n",
         addr_to_str(addr, ip_ver), bucket);
+
+  if (debug_file)
+    DEBUGF("%s c %s/%d %d\n", get_current_timestamp(), addr_to_str(addr, ip_ver), port, bucket);
 
   nh = ck_alloc(sizeof(struct host_data));
 

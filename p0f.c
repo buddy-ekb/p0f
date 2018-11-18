@@ -71,6 +71,7 @@ static u8 *use_iface,                   /* Interface to listen on             */
           *api_sock,                    /* API socket file name               */
           *fp_file;                     /* Location of p0f.fp                 */
 
+u8* debug_file;                         /* File for debugging purposes        */
 u8* read_file;                          /* File to read pcap data from        */
 
 static u32
@@ -88,6 +89,7 @@ static s32 null_fd = -1,                /* File descriptor of /dev/null       */
            api_fd = -1;                 /* API socket descriptor              */
 
 static FILE* lf;                        /* Log file stream                    */
+FILE* debug_file_stream;                /* Debug file stream                  */
 
 static u8 stop_soon;                    /* Ctrl-C or so pressed?              */
 
@@ -221,38 +223,38 @@ static void close_spare_fds(void) {
 
 /* Create or open log file */
 
-static void open_log(void) {
+static void open_file(char* filename, FILE** stream, char* prefix) {
 
   struct stat st;
-  s32 log_fd;
+  s32 fd;
 
-  log_fd = open((char*)log_file, O_WRONLY | O_APPEND | O_NOFOLLOW | O_LARGEFILE);
+  fd = open(filename, O_WRONLY | O_APPEND | O_NOFOLLOW | O_LARGEFILE);
 
-  if (log_fd >= 0) {
+  if (fd >= 0) {
 
-    if (fstat(log_fd, &st)) PFATAL("fstat() on '%s' failed.", log_file);
+    if (fstat(fd, &st)) PFATAL("fstat() on '%s' failed.", filename);
 
-    if (!S_ISREG(st.st_mode)) FATAL("'%s' is not a regular file.", log_file);
+    if (!S_ISREG(st.st_mode)) FATAL("'%s' is not a regular file.", filename);
 
   } else {
 
-    if (errno != ENOENT) PFATAL("Cannot open '%s'.", log_file);
+    if (errno != ENOENT) PFATAL("Cannot open '%s'.", filename);
 
-    log_fd = open((char*)log_file, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW,
-                  LOG_MODE);
+    fd = open(filename, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW,
+              LOG_MODE);
 
-    if (log_fd < 0) PFATAL("Cannot open '%s'.", log_file);
+    if (fd < 0) PFATAL("Cannot open '%s'.", filename);
 
   }
 
-  if (flock(log_fd, LOCK_EX | LOCK_NB))
-    FATAL("'%s' is being used by another process.", log_file);
+  if (flock(fd, LOCK_EX | LOCK_NB))
+    FATAL("'%s' is being used by another process.", filename);
 
-  lf = fdopen(log_fd, "a");
+  *stream = fdopen(fd, "a");
 
-  if (!lf) FATAL("fdopen() on '%s' failed.", log_file);
+  if (!*stream) FATAL("fdopen() on '%s' failed.", filename);
 
-  SAYF("[+] Log file '%s' opened for writing.\n", log_file);
+  SAYF("[+] %s file '%s' opened for writing.\n", prefix, filename);
 
 }
 
@@ -334,14 +336,7 @@ void start_observation(char* keyword, u8 field_cnt, u8 to_srv,
 
   if (log_file) {
 
-    u8 tmp[64];
-
-    time_t ut = get_unix_time();
-    struct tm* lt = localtime(&ut);
-
-    strftime((char*)tmp, 64, "%Y/%m/%d %H:%M:%S", lt);
-
-    LOGF("[%s] mod=%s|cli=%s/%u|",tmp, keyword, addr_to_str(f->client->addr,
+    LOGF("[%s] mod=%s|cli=%s/%u|", get_current_timestamp(), keyword, addr_to_str(f->client->addr,
          f->client->ip_ver), f->cli_port);
 
     LOGF("srv=%s/%u|subj=%s", addr_to_str(f->server->addr, f->server->ip_ver),
@@ -827,7 +822,7 @@ poll_again:
       PFATAL("poll() failed.");
     }
 
-    if (!pret) { if (log_file) fflush(lf); continue; }
+    if (!pret) { if (log_file) fflush(lf); if (debug_file) fflush(debug_file_stream); continue; }
 
     /* Examine pfds... */
 
@@ -990,6 +985,7 @@ poll_again:
     if (ret < 0) return;
 
     if (log_file && !ret) fflush(lf);
+    if (debug_file && !ret) fflush(debug_file_stream);
 
     write(2, NULL, 0);
 
@@ -1033,7 +1029,7 @@ int main(int argc, char** argv) {
   if (getuid() != geteuid())
     FATAL("Please don't make me setuid. See README for more.\n");
 
-  while ((r = getopt(argc, argv, "+LS:TWdf:i:m:o:pr:s:t:u:")) != -1) switch (r) {
+  while ((r = getopt(argc, argv, "+LS:TWdf:i:m:o:pr:s:t:u:D:")) != -1) switch (r) {
 
     case 'L':
 
@@ -1176,6 +1172,15 @@ int main(int argc, char** argv) {
       suppress_too_many_warnings = 1;
       break;
 
+    case 'D':
+
+      if (debug_file)
+        FATAL("Multiple -D options not supported.");
+
+      debug_file = (u8*)optarg;
+
+      break;
+
     default: usage();
 
   }
@@ -1229,7 +1234,8 @@ int main(int argc, char** argv) {
   prepare_pcap();
   prepare_bpf();
 
-  if (log_file) open_log();
+  if (log_file) open_file((char*)log_file, &lf, "Log");
+  if (debug_file) open_file((char*)debug_file, &debug_file_stream, "Debug");
   if (api_sock) open_api();
   
   if (daemon_mode) {
