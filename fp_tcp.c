@@ -1150,8 +1150,6 @@ log_and_update:
 
   }
 
-  hd->port = f->cli_port;
-
 }
 
 

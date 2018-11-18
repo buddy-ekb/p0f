@@ -910,6 +910,7 @@ static struct host_data* create_host(u8* addr, u16 port, u8 ip_ver) {
 
   nh->ip_ver = ip_ver;
   memcpy(nh->addr, addr, (ip_ver == IP_VER4) ? 4 : 16);
+  nh->port = port;
 
   nh->last_seen = nh->first_seen = get_unix_time();
 
