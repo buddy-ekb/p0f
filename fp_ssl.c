@@ -812,6 +812,9 @@ static void fingerprint_ssl(u8 to_srv, struct packet_flow* f,
 
   OBSERVF("remote_time", "%u", sig->remote_time);
 
+  if (debug_file)
+    DEBUGF("s %s/%d %d\n", addr_to_str(f->client->addr, f->client->ip_ver), f->client->port, f->client->raw_ssl_sig ? 1 : 0);
+
   u8* raw_sig = dump_sig(sig, 1);
   if(!f->client->raw_ssl_sig) {
     f->client->raw_ssl_sig_len = strlen((char*)raw_sig);

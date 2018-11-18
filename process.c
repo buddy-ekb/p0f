@@ -13,6 +13,7 @@
 #include <pcap.h>
 #include <time.h>
 #include <ctype.h>
+#include <math.h>
 
 #include <sys/fcntl.h>
 #include <netinet/in.h>
@@ -78,15 +79,29 @@ u32 get_unix_time(void) {
 
 /* Update current timestamp in text */
 
-char* get_current_timestamp(void) {
+char* get_current_timestamp(int add_second) {
     static char tmp[64];
 
-    time_t ut = get_unix_time();
+    time_t ut = get_unix_time() + add_second;
     struct tm* lt = localtime(&ut);
 
     strftime(tmp, sizeof tmp, "%Y/%m/%d %H:%M:%S", lt);
 
     return tmp;
+}
+
+/* Debug data to debug file */
+
+void add_debug_timestamp(void) {
+  int add_second = 0,
+      millisec   = lrint(cur_time->tv_usec / 1000.0); // Round to nearest millisec
+
+  if (millisec >= 1000) { // Allow for rounding up to nearest second
+    millisec -=1000;
+    add_second = 1;
+  }
+
+  fprintf(debug_file_stream, "%s.%03d ", get_current_timestamp(add_second), millisec);
 }
 
 /* Find link-specific offset (pcap knows, but won't tell). */
@@ -829,7 +844,7 @@ static void destroy_host(struct host_data* h) {
         addr_to_str(h->addr, h->ip_ver), bucket);
 
   if (debug_file)
-    DEBUGF("%s d %s/%d %d\n", get_current_timestamp(), addr_to_str(h->addr, h->ip_ver), h->port, bucket);
+    DEBUGF("d %s/%d %d\n", addr_to_str(h->addr, h->ip_ver), h->port, bucket);
 
   /* Remove it from the bucketed linked list. */
 
@@ -899,7 +914,7 @@ static struct host_data* create_host(u8* addr, u16 port, u8 ip_ver) {
         addr_to_str(addr, ip_ver), bucket);
 
   if (debug_file)
-    DEBUGF("%s c %s/%d %d\n", get_current_timestamp(), addr_to_str(addr, ip_ver), port, bucket);
+    DEBUGF("c %s/%d %d\n", addr_to_str(addr, ip_ver), port, bucket);
 
   nh = ck_alloc(sizeof(struct host_data));
 
@@ -997,6 +1012,12 @@ static void destroy_flow(struct packet_flow* f) {
   DEBUG("%s/%u (bucket %u)\n",
         addr_to_str(f->server->addr, f->server->ip_ver), f->srv_port,
         f->bucket);
+
+  if (debug_file)
+    DEBUGF("df %s/%d -> %s/%d (%d)\n",
+           addr_to_str(f->client->addr, f->client->ip_ver), f->cli_port,
+           addr_to_str(f->server->addr, f->server->ip_ver), f->srv_port,
+           f->bucket);
 
   /* Remove it from the bucketed linked list. */
 

@@ -23,8 +23,6 @@ extern u8* read_file;
 extern u8* debug_file;
 extern FILE* debug_file_stream;
 
-#define DEBUGF(_x...) fprintf(debug_file_stream, _x)
-
 void start_observation(char* keyword, u8 field_cnt, u8 to_srv,
                        struct packet_flow* pf);
 

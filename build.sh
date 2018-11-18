@@ -23,6 +23,8 @@ USE_CFLAGS="-fstack-protector-all -fPIE -D_FORTIFY_SOURCE=2 -g -ggdb \
 
 USE_LDFLAGS="-Wl,-z,relro -pie $BASIC_LDFLAGS"
 
+LIBS="-lm"
+
 if [ "$OSTYPE" = "cygwin" ]; then
   USE_LIBS="-lwpcap $LIBS"
 elif [ "$OSTYPE" = "solaris" ]; then
