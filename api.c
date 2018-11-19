@@ -45,9 +45,13 @@ void handle_query(struct p0f_api_query* q, struct p0f_api_response* r, u32* resp
 
   }
 
-  h = lookup_host(q->addr, q->port, q->magic == P0F_QUERY_MAGIC4 ? IP_VER4 : IP_VER6);
+  u8 ip_ver = q->magic == P0F_QUERY_MAGIC4 ? IP_VER4 : IP_VER6;
+  h = lookup_host(q->addr, q->port, ip_ver);
 
   if (!h) {
+    if (debug_file)
+      DEBUGF("af %s/%d\n", addr_to_str(q->addr, ip_ver), q->port);
+
     r->status = P0F_STATUS_NOMATCH;
     return;
   }
