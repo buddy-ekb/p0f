@@ -1000,7 +1000,7 @@ static void touch_host(struct host_data* h) {
 
 /* Destroy a flow. */
 
-static void destroy_flow(struct packet_flow* f) {
+static void destroy_flow(struct packet_flow* f, char reason) {
 
   CP(f);
   CP(f->client);
@@ -1013,11 +1013,10 @@ static void destroy_flow(struct packet_flow* f) {
         addr_to_str(f->server->addr, f->server->ip_ver), f->srv_port,
         f->bucket);
 
-  if (debug_file)
-    DEBUGF("df %s/%d -> %s/%d (%d)\n",
-           addr_to_str(f->client->addr, f->client->ip_ver), f->cli_port,
-           addr_to_str(f->server->addr, f->server->ip_ver), f->srv_port,
-           f->bucket);
+  if (debug_file) {
+    DEBUGF("df %s/%d -> ", addr_to_str(f->client->addr, f->client->ip_ver), f->cli_port);
+    fprintf(debug_file_stream, "%s/%d %d %c\n", addr_to_str(f->server->addr, f->server->ip_ver), f->srv_port, f->bucket, reason);
+  }
 
   /* Remove it from the bucketed linked list. */
 
@@ -1062,7 +1061,7 @@ static void nuke_flows(u8 silent) {
     WARN("Too many tracked connections, deleting %u. "
          "Use -m to adjust.", kcnt);
 
-  while (kcnt-- && flow_by_age) destroy_flow(flow_by_age);
+  while (kcnt-- && flow_by_age) destroy_flow(flow_by_age, 'a');
 
 }
 
@@ -1191,7 +1190,7 @@ static void expire_cache(void) {
   DEBUG("[#] Cache expiration kicks in...\n");
 
   while (CP(flow_by_age) && ct - flow_by_age->created > conn_max_age)
-    destroy_flow(flow_by_age);
+    destroy_flow(flow_by_age, 'e');
 
   target = host_by_age;
 
@@ -1232,7 +1231,7 @@ static void flow_dispatch(struct packet_data* pk) {
         if (to_srv && f->next_cli_seq - 1 == pk->seq) return;
 
         DEBUG("[#] New SYN for an existing flow, resetting.\n");
-        destroy_flow(f);
+        destroy_flow(f, 'n');
 
       }
 
@@ -1246,7 +1245,7 @@ static void flow_dispatch(struct packet_data* pk) {
 
       if (!tsig && !f->sendsyn) {
 
-        destroy_flow(f);
+        destroy_flow(f, 'k');
         return;
 
       }
@@ -1280,7 +1279,7 @@ static void flow_dispatch(struct packet_data* pk) {
       if (f->sendsyn) {
 
         fingerprint_tcp(0, pk, f);
-        destroy_flow(f);
+        destroy_flow(f, 'p');
         return;
 
       }
@@ -1311,7 +1310,7 @@ static void flow_dispatch(struct packet_data* pk) {
 
       if (!tsig) {
 
-        destroy_flow(f);
+        destroy_flow(f, 's');
         return;
 
       }
@@ -1334,7 +1333,7 @@ static void flow_dispatch(struct packet_data* pk) {
        if (f) {
 
          check_ts_tcp(to_srv, pk, f);
-         destroy_flow(f);
+         destroy_flow(f, 'r');
 
        }
 
@@ -1347,14 +1346,14 @@ static void flow_dispatch(struct packet_data* pk) {
       /* Stop there, you criminal scum! */
 
       if (f->sendsyn) {
-        destroy_flow(f);
+        destroy_flow(f, 't');
         return;
       }
 
       if (!f->acked) {
 
         DEBUG("[#] Never received SYN+ACK to complete handshake, huh.\n");
-        destroy_flow(f);
+        destroy_flow(f, 'h');
         return;
 
       }
@@ -1430,12 +1429,12 @@ static void flow_dispatch(struct packet_data* pk) {
       if (!need_more) {
 
         DEBUG("[#] All modules done, no need to keep tracking flow.\n");
-        destroy_flow(f);
+        destroy_flow(f, 'q');
 
       } else if (f->req_len >= MAX_FLOW_DATA && f->resp_len >= MAX_FLOW_DATA) {
 
         DEBUG("[#] Per-flow capture size limit exceeded.\n");
-        destroy_flow(f);
+        destroy_flow(f, 'l');
 
       }
 
@@ -1588,7 +1587,7 @@ void verify_tool_class(u8 to_srv, struct packet_flow* f, u32* sys, u32 sys_cnt) 
 
 void destroy_all_hosts(void) {
 
-  while (flow_by_age) destroy_flow(flow_by_age);
+  while (flow_by_age) destroy_flow(flow_by_age, 'c');
   while (host_by_age) destroy_host(host_by_age);
 
 }
