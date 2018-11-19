@@ -336,7 +336,7 @@ void start_observation(char* keyword, u8 field_cnt, u8 to_srv,
 
   if (log_file) {
 
-    LOGF("[%s] mod=%s|cli=%s/%u|", get_current_timestamp(0), keyword, addr_to_str(f->client->addr,
+    LOGF("[%s] mod=%s|cli=%s/%u|", get_current_timestamp(), keyword, addr_to_str(f->client->addr,
          f->client->ip_ver), f->cli_port);
 
     LOGF("srv=%s/%u|subj=%s", addr_to_str(f->server->addr, f->server->ip_ver),

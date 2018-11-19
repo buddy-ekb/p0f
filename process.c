@@ -77,31 +77,39 @@ u32 get_unix_time(void) {
   return cur_time->tv_sec;
 }
 
+/* Make timestamp from timeval struct */
+
+static char* return_timestamp_text(time_t ut) {
+  static char tmp[64];
+
+  struct tm* lt = localtime(&ut);
+
+  strftime(tmp, sizeof tmp, "%Y/%m/%d %H:%M:%S", lt);
+
+  return tmp;
+}
+
 /* Update current timestamp in text */
 
-char* get_current_timestamp(int add_second) {
-    static char tmp[64];
-
-    time_t ut = get_unix_time() + add_second;
-    struct tm* lt = localtime(&ut);
-
-    strftime(tmp, sizeof tmp, "%Y/%m/%d %H:%M:%S", lt);
-
-    return tmp;
+char* get_current_timestamp(void) {
+  return return_timestamp_text(get_unix_time());
 }
 
 /* Debug data to debug file */
 
 void add_debug_timestamp(void) {
-  int add_second = 0,
-      millisec   = lrint(cur_time->tv_usec / 1000.0); // Round to nearest millisec
+  struct timeval now;
+
+  gettimeofday(&now, NULL);
+
+  int millisec = lrint(now.tv_usec / 1000.0); // Round to nearest millisec
 
   if (millisec >= 1000) { // Allow for rounding up to nearest second
     millisec -=1000;
-    add_second = 1;
+    now.tv_sec++;
   }
 
-  fprintf(debug_file_stream, "%s.%03d ", get_current_timestamp(add_second), millisec);
+  fprintf(debug_file_stream, "%s.%03d ", return_timestamp_text(now.tv_sec), millisec);
 }
 
 /* Find link-specific offset (pcap knows, but won't tell). */
@@ -844,7 +852,7 @@ static void destroy_host(struct host_data* h) {
         addr_to_str(h->addr, h->ip_ver), bucket);
 
   if (debug_file)
-    DEBUGF("d %s/%d %d\n", addr_to_str(h->addr, h->ip_ver), h->port, bucket);
+    DEBUGF("d %s/%d\n", addr_to_str(h->addr, h->ip_ver), h->port);
 
   /* Remove it from the bucketed linked list. */
 
@@ -915,7 +923,7 @@ static struct host_data* create_host(u8* addr, u16 port, u8 ip_ver) {
         addr_to_str(addr, ip_ver), bucket);
 
   if (debug_file)
-    DEBUGF("c %s/%d %d\n", addr_to_str(addr, ip_ver), port, bucket);
+    DEBUGF("c %s/%d\n", addr_to_str(addr, ip_ver), port);
 
   nh = ck_alloc(sizeof(struct host_data));
 
@@ -1017,7 +1025,7 @@ static void destroy_flow(struct packet_flow* f, char reason) {
 
   if (debug_file) {
     DEBUGF("df %s/%d -> ", addr_to_str(f->client->addr, f->client->ip_ver), f->cli_port);
-    fprintf(debug_file_stream, "%s/%d %d %c\n", addr_to_str(f->server->addr, f->server->ip_ver), f->srv_port, f->bucket, reason);
+    DEBUGFN("%s/%d %c\n",  addr_to_str(f->server->addr, f->server->ip_ver), f->srv_port, reason);
   }
 
   /* Remove it from the bucketed linked list. */
