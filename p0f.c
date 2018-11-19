@@ -75,7 +75,8 @@ u8* debug_file;                         /* File for debugging purposes        */
 u8* read_file;                          /* File to read pcap data from        */
 
 static u32
-  api_max_conn    = API_MAX_CONN;       /* Maximum number of API connections  */
+  api_max_conn    = API_MAX_CONN,       /* Maximum number of API connections  */
+  pcap_timeout    = PCAP_TIMEOUT;       /* Read timeout from pcap             */
 
 u32
   max_conn        = MAX_CONN,           /* Connection entry count limit       */
@@ -95,7 +96,7 @@ static u8 stop_soon;                    /* Ctrl-C or so pressed?              */
 
 u8 daemon_mode;                         /* Running in daemon mode?            */
 
-u8 process_tcp_only;                    /* parse TCP packets only?            */
+u8 skip_http_processing;                /* skip parsing HTTP packets only     */
 
 u8 suppress_too_many_warnings;          /* suppress 'too many ...' warnings   */
 
@@ -152,6 +153,8 @@ static void usage(void) {
 "  -m c,h    - cap the number of active connections / hosts (%u,%u)\n"
 "  -T        - parse TCP packets only (skip HTTP or whatever)\n"
 "  -W        - suppress 'too many tracked connections/host entries' warnings\n"
+"  -D file   - output miscellaneous debug data into the file specified\n"
+"  -R ms     - tune read timeout from pcap (%ums)\n"
 "\n"
 "Optional filter expressions (man tcpdump) can be specified in the command\n"
 "line to prevent p0f from looking at incidental network traffic.\n"
@@ -162,7 +165,7 @@ static void usage(void) {
 #ifndef __CYGWIN__
     API_MAX_CONN,
 #endif /* !__CYGWIN__ */
-    CONN_MAX_AGE, HOST_IDLE_LIMIT, MAX_CONN,  MAX_HOSTS);
+    CONN_MAX_AGE, HOST_IDLE_LIMIT, MAX_CONN, MAX_HOSTS, PCAP_TIMEOUT);
 
   exit(1);
 
@@ -515,7 +518,7 @@ static void prepare_pcap(void) {
     /* PCAP timeouts tend to be broken, so we'll use a very small value
        and rely on select() instead. */
 
-    pt = pcap_open_live((char*)use_iface, SNAPLEN, set_promisc, 5, pcap_err);
+    pt = pcap_open_live((char*)use_iface, SNAPLEN, set_promisc, pcap_timeout, pcap_err);
 
 #endif /* ^__CYGWIN__ */
 
@@ -1029,7 +1032,7 @@ int main(int argc, char** argv) {
   if (getuid() != geteuid())
     FATAL("Please don't make me setuid. See README for more.\n");
 
-  while ((r = getopt(argc, argv, "+LS:TWdf:i:m:o:pr:s:t:u:D:")) != -1) switch (r) {
+  while ((r = getopt(argc, argv, "+LS:TWdf:i:m:o:pr:s:t:u:D:R:")) != -1) switch (r) {
 
     case 'L':
 
@@ -1159,10 +1162,10 @@ int main(int argc, char** argv) {
       break;
 
     case 'T':
-      if (process_tcp_only)
+      if (skip_http_processing)
         FATAL("Can't disable HTTP processing twice.");
 
-      process_tcp_only = 1;
+      skip_http_processing = 1;
       break;
 
     case 'W':
@@ -1178,6 +1181,18 @@ int main(int argc, char** argv) {
         FATAL("Multiple -D options not supported.");
 
       debug_file = (u8*)optarg;
+
+      break;
+
+    case 'R':
+
+      if (pcap_timeout != PCAP_TIMEOUT)
+        FATAL("Multiple -R options are not supported.");
+
+      pcap_timeout = atol(optarg);
+
+      if (pcap_timeout < 0 || pcap_timeout > 10000)
+        FATAL("Outlandish value specified for -R.");
 
       break;
 

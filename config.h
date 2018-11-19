@@ -187,6 +187,10 @@
 
 #define HTTP_MAX_DATE_DIFF  10
 
+/* Default read timeout from pcap in milliseconds */
+
+#define PCAP_TIMEOUT        5
+
 #ifdef _FROM_FP_HTTP
 
 #include "fp_http.h"
