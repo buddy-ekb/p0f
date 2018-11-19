@@ -889,7 +889,8 @@ static void nuke_hosts(void) {
   if (!read_file && !suppress_too_many_warnings)
     WARN("Too many host entries, deleting %u. Use -m to adjust.", kcnt);
 
-  nuke_flows(1);
+  if (flow_cnt > max_conn)
+    nuke_flows(1);
 
   while (kcnt && CP(target)) {
     struct host_data* next = target->older;
@@ -961,7 +962,7 @@ static struct host_data* create_host(u8* addr, u16 port, u8 ip_ver) {
 
 /* Touch host data to make it more recent. */
 
-static void touch_host(struct host_data* h) {
+void touch_host(struct host_data* h, int update_last_seen) {
 
   CP(h);
 
@@ -992,7 +993,8 @@ static void touch_host(struct host_data* h) {
 
   /* Update last seen time. */
 
-  h->last_seen = get_unix_time();
+  if (update_last_seen)
+    h->last_seen = get_unix_time();
 
 }
 
@@ -1086,12 +1088,12 @@ static struct packet_flow* create_flow_from_syn(struct packet_data* pk) {
 
   nf->client = lookup_host(pk->src, pk->sport, pk->ip_ver);
 
-  if (nf->client) touch_host(nf->client);
+  if (nf->client) touch_host(nf->client, 1);
   else nf->client = create_host(pk->src, pk->sport, pk->ip_ver);
 
   nf->server = lookup_host(pk->dst, pk->dport, pk->ip_ver);
 
-  if (nf->server) touch_host(nf->server);
+  if (nf->server) touch_host(nf->server, 1);
   else nf->server = create_host(pk->dst, pk->dport, pk->ip_ver);
 
   nf->client->use_cnt++;

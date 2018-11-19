@@ -52,6 +52,8 @@ void handle_query(struct p0f_api_query* q, struct p0f_api_response* r, u32* resp
     return;
   }
 
+  touch_host(h, 0);
+
   r->status = P0F_STATUS_OK;
 
   u32 buf_offset = 0;
