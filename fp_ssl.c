@@ -816,10 +816,11 @@ static void fingerprint_ssl(u8 to_srv, struct packet_flow* f,
     DEBUGF("s %s/%d %d\n", addr_to_str(f->client->addr, f->client->ip_ver), f->client->port, f->client->raw_ssl_sig ? 1 : 0);
 
   u8* raw_sig = dump_sig(sig, 1);
-  if(!f->client->raw_ssl_sig) {
-    f->client->raw_ssl_sig_len = strlen((char*)raw_sig);
-    f->client->raw_ssl_sig = ck_memdup_str(raw_sig, f->client->raw_ssl_sig_len);
+  if(f->client->raw_ssl_sig) {
+    ck_free(f->client->raw_ssl_sig);
   }
+  f->client->raw_ssl_sig_len = strlen((char*)raw_sig);
+  f->client->raw_ssl_sig = ck_memdup_str(raw_sig, f->client->raw_ssl_sig_len);
   add_observation_field("raw_sig", raw_sig);
 
   score_nat(to_srv, f, sig);
