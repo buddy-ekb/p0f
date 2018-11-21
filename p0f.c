@@ -511,7 +511,7 @@ static void prepare_pcap(void) {
   
     }
 
-    pt = pcap_open_live((char*)use_iface, SNAPLEN, set_promisc, 250, pcap_err);
+    pt = pcap_open_live((char*)use_iface, SNAPLEN, set_promisc, pcap_timeout, pcap_err);
 
 #else 
 
@@ -818,7 +818,7 @@ static void live_event_loop(void) {
 
 poll_again:
 
-    pret = poll(pfds, pfd_count, 10);
+    pret = poll(pfds, pfd_count, POLL_TIMEOUT);
 
     if (pret < 0) {
       if (errno == EINTR) break;
@@ -1191,7 +1191,7 @@ int main(int argc, char** argv) {
 
       pcap_timeout = atol(optarg);
 
-      if (pcap_timeout < 0 || pcap_timeout > 10000)
+      if (pcap_timeout < 1 || pcap_timeout > 60000)
         FATAL("Outlandish value specified for -R.");
 
       break;

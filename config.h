@@ -189,7 +189,15 @@
 
 /* Default read timeout from pcap in milliseconds */
 
+#ifdef __CYGWIN__
+#define PCAP_TIMEOUT        250
+#else
 #define PCAP_TIMEOUT        5
+#endif
+
+/* Default read timeout for polling in milliseconds */
+
+#define POLL_TIMEOUT        10
 
 #ifdef _FROM_FP_HTTP
 
