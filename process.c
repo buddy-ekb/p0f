@@ -851,8 +851,8 @@ static void destroy_host(struct host_data* h) {
   DEBUG("[#] Destroying host data: %s (bucket %d)\n",
         addr_to_str(h->addr, h->ip_ver), bucket);
 
-  if (debug_file)
-    DEBUGF("d %s/%d\n", addr_to_str(h->addr, h->ip_ver), h->port);
+//  if (debug_file)
+//    DEBUGF("d %s/%d\n", addr_to_str(h->addr, h->ip_ver), h->port);
 
   /* Remove it from the bucketed linked list. */
 
@@ -1023,10 +1023,10 @@ static void destroy_flow(struct packet_flow* f, char reason) {
         addr_to_str(f->server->addr, f->server->ip_ver), f->srv_port,
         f->bucket);
 
-  if (debug_file) {
-    DEBUGF("df %s/%d -> ", addr_to_str(f->client->addr, f->client->ip_ver), f->cli_port);
-    DEBUGFN("%s/%d %c\n",  addr_to_str(f->server->addr, f->server->ip_ver), f->srv_port, reason);
-  }
+//  if (debug_file) {
+//    DEBUGF("df %s/%d -> ", addr_to_str(f->client->addr, f->client->ip_ver), f->cli_port);
+//    DEBUGFN("%s/%d %c\n",  addr_to_str(f->server->addr, f->server->ip_ver), f->srv_port, reason);
+//  }
 
   /* Remove it from the bucketed linked list. */
 
