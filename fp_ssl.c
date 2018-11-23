@@ -40,12 +40,34 @@ struct flag {
   u32 value;
 };
 
-struct flag flags[] = {{"compr", 5, SSL_FLAG_COMPR},
-                       {"v2",    2, SSL_FLAG_V2},
-                       {"ver",   3, SSL_FLAG_VER},
-                       {"rtime", 5, SSL_FLAG_RTIME},
-                       {"stime", 5, SSL_FLAG_STIME},
+struct flag flags[] = {{"compr",  5, SSL_FLAG_COMPR},
+                       {"v2",     2, SSL_FLAG_V2},
+                       {"ver",    3, SSL_FLAG_VER},
+                       {"rtime",  5, SSL_FLAG_RTIME},
+                       {"stime",  5, SSL_FLAG_STIME},
+                       {"grease", 6, SSL_FLAG_GREASE},
                        {NULL, 0, 0}};
+
+/* Just for information; in fact a much quicker algorithm is used */
+/*
+static u16 greases[] = {0x0A0A,
+                        0x1A1A,
+                        0x2A2A,
+                        0x3A3A,
+                        0x4A4A,
+                        0x5A5A,
+                        0x6A6A,
+                        0x7A7A,
+                        0x8A8A,
+                        0x9A9A,
+                        0xAAAA,
+                        0xBABA,
+                        0xCACA,
+                        0xDADA,
+                        0xEAEA,
+                        0xFAFA};
+*/
+#define IS_GREASE(n) (((n & 0xffff0f0f) == 0x0a0a) && ((n & 0xff) == ((n >> 8) & 0xff)))
 
 
 /* Signatures are stored as flat list. Matching is fast: ssl version
@@ -454,7 +476,12 @@ static int fingerprint_ssl_v3(struct ssl_sig* sig, const u8* fragment,
 
   while (pay < tmp_end) {
 
-    sig->cipher_suites[cipher_pos++] = (pay[0] << 8) | pay[1];
+    sig->cipher_suites[cipher_pos] = (pay[0] << 8) | pay[1];
+    if (IS_GREASE(sig->cipher_suites[cipher_pos])) {
+      sig->flags |= SSL_FLAG_GREASE;
+    } else {
+      cipher_pos++;
+    }
     pay += 2;
 
   }
@@ -508,7 +535,9 @@ static int fingerprint_ssl_v3(struct ssl_sig* sig, const u8* fragment,
 
     pay += ext_len;
 
-    sig->extensions[extensions_pos++] = ext_type;
+    if (!IS_GREASE(ext_type)) {
+      sig->extensions[extensions_pos++] = ext_type;
+    }
 
     /* Extension payload sane? */
     if (pay > tmp_end) break;
