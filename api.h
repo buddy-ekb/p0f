@@ -15,11 +15,9 @@
 
 #define P0F_QUERY_MAGIC4     0x50304604
 #define P0F_QUERY_MAGIC6     0x50304606
-#define P0F_RESP_MAGIC       0x50304605
 
-#define P0F_STATUS_BADQUERY  0x00
-#define P0F_STATUS_OK        0x10
-#define P0F_STATUS_NOMATCH   0x20
+#define P0F_RESP_MAGIC_HIT   0x50304610
+#define P0F_RESP_MAGIC_MISS  0x50304620
 
 #define P0F_STR_MAX          31
 
@@ -38,8 +36,7 @@ struct p0f_api_query {
 
 struct p0f_api_response {
 
-  u32 magic;                            /* Must be P0F_RESP_MAGIC             */
-  u32 status;                           /* P0F_STATUS_*                       */
+  u32 magic;                            /* Must be P0F_RESP_MAGIC_HIT or P0F_RESP_MAGIC_MISS */
 
   u16 raw_tcp_sig_len;                  /* Text length of raw TCP signature   */
   u16 raw_ssl_sig_len;                  /* Text length of raw SSL signature   */

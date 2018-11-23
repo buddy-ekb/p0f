@@ -32,17 +32,11 @@ void handle_query(struct p0f_api_query* q, struct p0f_api_response* r, u32* resp
 
   memset(r, 0, sizeof(struct p0f_api_response));
 
-  r->magic = P0F_RESP_MAGIC;
   *response_len = sizeof(struct p0f_api_response) - sizeof r->sig_buffer;
 
   if (q->magic != P0F_QUERY_MAGIC4 && q->magic != P0F_QUERY_MAGIC6) {
-
     WARN("Query with bad magic (0x%x).", q->magic);
-
-    r->status = P0F_STATUS_BADQUERY;
-
     return;
-
   }
 
   u8 ip_ver = q->magic == P0F_QUERY_MAGIC4 ? IP_VER4 : IP_VER6;
@@ -52,13 +46,13 @@ void handle_query(struct p0f_api_query* q, struct p0f_api_response* r, u32* resp
     if (debug_file)
       DEBUGF("af %s/%d\n", addr_to_str(q->addr, ip_ver), q->port);
 
-    r->status = P0F_STATUS_NOMATCH;
+    r->magic = P0F_RESP_MAGIC_MISS;
     return;
   }
 
   touch_host(h, 0);
 
-  r->status = P0F_STATUS_OK;
+  r->magic = P0F_RESP_MAGIC_HIT;
 
   u32 buf_offset = 0;
 
@@ -75,14 +69,5 @@ void handle_query(struct p0f_api_query* q, struct p0f_api_response* r, u32* resp
   }
 
   *response_len += buf_offset;
-
-/*  r->bad_sw      = h->bad_sw;
-  r->last_nat    = h->last_nat;
-  r->last_chg    = h->last_chg;
-  r->up_mod_days = h->up_mod_days;
-  r->distance    = h->distance;
-  r->os_match_q  = h->last_quality;
-
-  if (h->last_up_min != -1) r->uptime_min = h->last_up_min;*/
 
 }
