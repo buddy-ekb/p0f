@@ -1052,7 +1052,7 @@ int main(int argc, char** argv) {
 
       api_max_conn = atol(optarg);
 
-      if (!api_max_conn || api_max_conn > 100)
+      if (!api_max_conn || api_max_conn > 1000)
         FATAL("Outlandish value specified for -S.");
 
       break;
